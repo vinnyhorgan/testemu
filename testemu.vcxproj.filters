@@ -18,5 +18,192 @@
     <ClCompile Include="src\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\win32_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\win32_joystick.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\win32_module.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\win32_monitor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\win32_thread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\win32_time.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\win32_window.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glad\src\glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\window.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\wgl_context.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\vulkan.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\platform.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\osmesa_context.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\context.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\input.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\egl_context.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\monitor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\null_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\null_joystick.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\null_monitor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\null_window.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\cocoa_time.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\glx_context.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\linux_joystick.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\posix_module.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\posix_poll.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\posix_thread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\posix_time.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\wl_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\wl_monitor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\wl_window.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\x11_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\x11_monitor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\x11_window.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lib\glfw\src\xkb_unicode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\lib\glfw\src\win32_joystick.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\win32_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\win32_thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\win32_time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\include\GLFW\glfw3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\include\GLFW\glfw3native.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glad\include\glad\glad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glad\include\KHR\khrplatform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\mappings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\null_joystick.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\null_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\cocoa_joystick.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\cocoa_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\cocoa_time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\linux_joystick.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\posix_poll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\posix_thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\posix_time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\wl_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\x11_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\glfw\src\xkb_unicode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\lib\glfw\src\mappings.h.in" />
+    <None Include="src\lib\glfw\src\cocoa_init.m" />
+    <None Include="src\lib\glfw\src\cocoa_joystick.m" />
+    <None Include="src\lib\glfw\src\cocoa_monitor.m" />
+    <None Include="src\lib\glfw\src\cocoa_window.m" />
+    <None Include="src\lib\glfw\src\nsgl_context.m" />
   </ItemGroup>
 </Project>
