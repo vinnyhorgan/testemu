@@ -28,7 +28,7 @@ const char *fragment_source =
 	"void main() {\n"
 	"    vec2 texel = TexCoord * vec2(fb_width, textureSize(fb_tex, 0).y);\n"
 	"    ivec2 pixel = ivec2(texel);\n"
-	"    float index_byte = texelFetch(fb_tex, pixel, 0).r;\n"
+	"    float index_byte = int(texelFetch(fb_tex, pixel, 0).r * 255.0);\n"
 	"    int color_index;\n"
 	"    if (int(texel.x) % 2 == 0) {\n"
 	"        color_index = int(index_byte) & 0x0F;\n"
@@ -39,7 +39,31 @@ const char *fragment_source =
 	"}\n";
 
 static void size_callback(GLFWwindow *window, int width, int height) {
-	glViewport(0, 0, width, height);
+	float aspect_ratio = (float) WIDTH / HEIGHT;
+
+	if (width / aspect_ratio > height) {
+		glViewport((width - height * aspect_ratio) / 2, 0, height * aspect_ratio, height);
+	} else {
+		glViewport(0, (height - width / aspect_ratio) / 2, width, width / aspect_ratio);
+	}
+}
+
+static void set_pixel(uint8_t *fb, int x, int y, uint8_t color) {
+	int index = (y * WIDTH + x) / 2;
+	if (x % 2 == 0) {
+		fb[index] = (fb[index] & 0x0F) | (color << 4);
+	} else {
+		fb[index] = (fb[index] & 0xF0) | (color & 0x0F);
+	}
+}
+
+static uint8_t get_pixel(uint8_t *fb, int x, int y) {
+	int index = (y * WIDTH + x) / 2;
+	if (x % 2 == 0) {
+		return (fb[index] >> 4) & 0x0F;
+	} else {
+		return fb[index] & 0x0F;
+	}
 }
 
 int main() {
@@ -66,15 +90,41 @@ int main() {
 	}
 
 	uint8_t fb[WIDTH * HEIGHT / 2];
-	for (int i = 0; i < WIDTH * HEIGHT / 2; i++) {
-		fb[i] = (i % PALETTE_SIZE) | ((PALETTE_SIZE - (i % PALETTE_SIZE)) << 4);
+
+	/* HORIZONTAL GRADIENT
+	for (int y = 0; y < HEIGHT; y++) {
+		for (int x = 0; x < WIDTH; x++) {
+			uint8_t color = (x * 16) / WIDTH; // Scale x to 4-bit color
+			set_pixel(fb, x, y, color);
+		}
+	}
+	*/
+
+	/* RADIAL GRADIENT
+	int cx = WIDTH / 2;
+	int cy = HEIGHT / 2;
+	for (int y = 0; y < HEIGHT; y++) {
+		for (int x = 0; x < WIDTH; x++) {
+			int dx = x - cx;
+			int dy = y - cy;
+			int distance = (int)(sqrt(dx * dx + dy * dy) / 10) % 16;
+			set_pixel(fb, x, y, distance);
+		}
+	}
+	*/
+
+	for (int y = 0; y < HEIGHT; y++) {
+		for (int x = 0; x < WIDTH; x++) {
+			uint8_t color = ((x + y) / 10) % 16;
+			set_pixel(fb, x, y, color);
+		}
 	}
 
 	uint8_t pal[PALETTE_SIZE * 4] = {
-		  0,   0,   0, 255,   255,   0,   0, 255,     0, 255,   0, 255,     0,   0, 255, 255,
-		255, 255,   0, 255,     0, 255, 255, 255,   255,   0, 255, 255,   192, 192, 192, 255,
-		128, 128, 128, 255,   128,   0,   0, 255,     0, 128,   0, 255,     0,   0, 128, 255,
-		128, 128,   0, 255,     0, 128, 128, 255,   128,   0, 128, 255,   255, 255, 255, 255
+		 33,  59,  37, 255,     58,  96,  74, 255,     79, 119,  84, 255,    161, 159, 124, 255,
+		119, 116,  79, 255,    119,  92,  79, 255,     96,  59,  58, 255,     59,  33,  55, 255,
+		 23,  14,  25, 255,     47,  33,  59, 255,     67,  58,  96, 255,     79,  82, 119, 255,
+		101, 115, 140, 255,    124, 148, 161, 255,    160, 185, 186, 255,    192, 209, 204, 255
 	};
 
 	// SHADERS
