@@ -2,25 +2,31 @@
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
+#include <stdint.h>
 
 #define WIDTH 320
 #define HEIGHT 240
+#define PALETTE_SIZE 16
 
 const char *vertex_source =
 	"#version 330 core\n"
 	"layout (location = 0) in vec3 aPos;\n"
-	"void main()\n"
-	"{\n"
-	"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-	"}\0";
+	"layout (location = 1) in vec2 aTexCoord;\n"
+	"out vec2 TexCoord;\n"
+	"void main() {\n"
+	"   gl_Position = vec4(aPos, 1.0);\n"
+	"   TexCoord = aTexCoord;\n"
+	"}\n";
 
 const char *fragment_source =
 	"#version 330 core\n"
 	"out vec4 FragColor;\n"
-	"void main()\n"
-	"{\n"
-	"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-	"}\n\0";
+	"in vec2 TexCoord;\n"
+	"uniform sampler2D pal_tex;\n"
+	"uniform sampler2D fb_tex;\n"
+	"void main() {\n"
+	"   FragColor = texture(fb_tex, TexCoord);\n"
+	"}\n";
 
 static void size_callback(GLFWwindow *window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -49,6 +55,17 @@ int main() {
 	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
 		glfwTerminate();
 		return -1;
+	}
+
+	uint8_t fb[WIDTH * HEIGHT * 4];
+
+	for (int y = 0; y < HEIGHT; y++) {
+		for (int x = 0; x < WIDTH; x++) {
+			fb[(y * WIDTH + x) * 4 + 0] = (uint8_t)(x * 255 / WIDTH);
+			fb[(y * WIDTH + x) * 4 + 1] = (uint8_t)(y * 255 / HEIGHT);
+			fb[(y * WIDTH + x) * 4 + 2] = 0;
+			fb[(y * WIDTH + x) * 4 + 3] = 255;
+		}
 	}
 
 	// SHADERS
@@ -92,17 +109,18 @@ int main() {
 	// MORE GL STUFF
 
 	float vertices[] = {
-		 0.5f,  0.5f, 0.0f,  // top right
-		 0.5f, -0.5f, 0.0f,  // bottom right
-		-0.5f, -0.5f, 0.0f,  // bottom left
-		-0.5f,  0.5f, 0.0f   // top left 
-	};
-	unsigned int indices[] = {  // note that we start from 0!
-		0, 1, 3,  // first Triangle
-		1, 2, 3   // second Triangle
+		 0.5f,  0.5f, 0.0f,    1.0f, 1.0f,
+		 0.5f, -0.5f, 0.0f,    1.0f, 0.0f,
+		-0.5f, -0.5f, 0.0f,    0.0f, 0.0f,
+		-0.5f,  0.5f, 0.0f,    0.0f, 1.0f
 	};
 
-	unsigned int vbo, vao, ebo;
+	unsigned int indices[] = {
+		0, 1, 3,
+		1, 2, 3
+	};
+
+	unsigned int vao, vbo, ebo;
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
 	glGenBuffers(1, &ebo);
@@ -115,17 +133,43 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) 0);
 	glEnableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+	// texture attribute
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// TEXTURESSS
+	unsigned int pal_texture, fb_texture;
+
+	glGenTextures(1, &pal_texture);
+	glBindTexture(GL_TEXTURE_2D, pal_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glGenTextures(1, &fb_texture);
+	glBindTexture(GL_TEXTURE_2D, fb_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, fb);
+
+	glUseProgram(shader_program);
+	glUniform1i(glGetUniformLocation(shader_program, "pal_tex"), 0);
+	glUniform1i(glGetUniformLocation(shader_program, "fb_tex"), 1);
 
 	// MAIN LOOP
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, pal_texture);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, fb_texture);
 
 		glUseProgram(shader_program);
 		glBindVertexArray(vao);
