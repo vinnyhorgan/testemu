@@ -84,6 +84,7 @@ int main() {
 
 	glfwSetFramebufferSizeCallback(window, size_callback);
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(0);
 	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
 		glfwTerminate();
 		return -1;
@@ -222,7 +223,24 @@ int main() {
 	glUniform1i(glGetUniformLocation(shader_program, "fb_width"), WIDTH / 2);
 
 	// MAIN LOOP
+	double last_time = glfwGetTime();
+	int frame_count = 0;
+
 	while (!glfwWindowShouldClose(window)) {
+		double current_time = glfwGetTime();
+		double delta_time = current_time - last_time;
+		last_time = current_time;
+
+		frame_count++;
+
+		static double fps_time_accum = 0.0;
+		fps_time_accum += delta_time;
+		if (fps_time_accum >= 1.0) {
+			printf("FPS: %d\n", frame_count);
+			frame_count = 0;
+			fps_time_accum = 0.0;
+		}
+
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glActiveTexture(GL_TEXTURE0);
