@@ -43,7 +43,6 @@ const char *vertex_source =
 	"    TexCoord = aTexCoord;\n"
 	"}\n";
 
-/* BASE SHADER
 const char *fragment_source =
 	"#version 330 core\n"
 	"out vec4 FragColor;\n"
@@ -51,27 +50,8 @@ const char *fragment_source =
 	"uniform sampler1D pal_tex;\n"
 	"uniform sampler2D fb_tex;\n"
 	"uniform int fb_width;\n"
-	"void main() {\n"
-	"    vec2 texel = TexCoord * vec2(fb_width, textureSize(fb_tex, 0).y);\n"
-	"    ivec2 pixel = ivec2(texel);\n"
-	"    float index_byte = int(texelFetch(fb_tex, pixel, 0).r * 255.0);\n"
-	"    int color_index;\n"
-	"    if (int(texel.x) % 2 == 0) {\n"
-	"        color_index = int(index_byte) & 0x0F;\n"
-	"    } else {\n"
-	"        color_index = (int(index_byte) >> 4) & 0x0F;\n"
-	"    }\n"
-	"    FragColor = texelFetch(pal_tex, color_index, 0);\n"
-	"}\n";
-*/
-
-const char *fragment_source =
-	"#version 330 core\n"
-	"out vec4 FragColor;\n"
-	"in vec2 TexCoord;\n"
-	"uniform sampler1D pal_tex;\n"
-	"uniform sampler2D fb_tex;\n"
-	"uniform int fb_width;\n"
+	"uniform float warp;\n"
+	"uniform float scan;\n"
 	"void main() {\n"
 	"    vec2 texel = TexCoord * vec2(fb_width, textureSize(fb_tex, 0).y);\n"
 	"    ivec2 pixel = ivec2(texel);\n"
@@ -86,15 +66,15 @@ const char *fragment_source =
 	"    vec2 uv = TexCoord;\n"
 	"    vec2 dc = abs(0.5 - uv) * abs(0.5 - uv);"
 	"    uv.x -= 0.5;\n"
-	"    uv.x *= 1.0 + (dc.y * (0.3 * 0.75));\n"
+	"    uv.x *= 1.0 + (dc.y * (0.3 * warp));\n"
 	"    uv.x += 0.5;\n"
 	"    uv.y -= 0.5;\n"
-	"    uv.y *= 1.0 + (dc.x * (0.4 * 0.75));\n"
+	"    uv.y *= 1.0 + (dc.x * (0.4 * warp));\n"
 	"    uv.y += 0.5;\n"
 	"    if (uv.y > 1.0 || uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0) {\n"
 	"        FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n"
 	"    } else {\n"
-	"        float apply = abs(sin(gl_FragCoord.y) * 0.5 * 0.75);\n"
+	"        float apply = abs(sin(gl_FragCoord.y) * 0.5 * scan);\n"
 	"        FragColor = mix(color, vec4(0.0, 0.0, 0.0, 1.0), apply);\n"
 	"    }\n"
 	"}\n";
@@ -174,7 +154,7 @@ int main() {
 
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-	window = glfwCreateWindow(WIDTH * 2, HEIGHT * 2, "Test Emu - GL", NULL, NULL);
+	window = glfwCreateWindow(WIDTH * 2, HEIGHT * 2, "Emu - v0.1.0", NULL, NULL);
 	if (!window) {
 		glfwTerminate();
 		return -1;
@@ -193,33 +173,11 @@ int main() {
 	glfwSetKeyCallback(window, key_callback);
 
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(0);
+	glfwSwapInterval(1);
 	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
 		glfwTerminate();
 		return -1;
 	}
-
-	/* HORIZONTAL GRADIENT
-	for (int y = 0; y < HEIGHT; y++) {
-		for (int x = 0; x < WIDTH; x++) {
-			uint8_t color = (x * 16) / WIDTH; // Scale x to 4-bit color
-			set_pixel(fb, x, y, color);
-		}
-	}
-	*/
-
-	/* RADIAL GRADIENT
-	int cx = WIDTH / 2;
-	int cy = HEIGHT / 2;
-	for (int y = 0; y < HEIGHT; y++) {
-		for (int x = 0; x < WIDTH; x++) {
-			int dx = x - cx;
-			int dy = y - cy;
-			int distance = (int)(sqrt(dx * dx + dy * dy) / 10) % 16;
-			set_pixel(fb, x, y, distance);
-		}
-	}
-	*/
 
 	for (int y = 0; y < HEIGHT; y++) {
 		for (int x = 0; x < WIDTH; x++) {
@@ -228,11 +186,14 @@ int main() {
 		}
 	}
 
+	#define HEX(hex) ((hex >> 16) & 0xFF), ((hex >> 8) & 0xFF), (hex & 0xFF), 255
+
+	// Lost Century palette lospec
 	uint8_t pal[PALETTE_SIZE * 4] = {
-		 33,  59,  37, 255,     58,  96,  74, 255,     79, 119,  84, 255,    161, 159, 124, 255,
-		119, 116,  79, 255,    119,  92,  79, 255,     96,  59,  58, 255,     59,  33,  55, 255,
-		 23,  14,  25, 255,     47,  33,  59, 255,     67,  58,  96, 255,     79,  82, 119, 255,
-		101, 115, 140, 255,    124, 148, 161, 255,    160, 185, 186, 255,    192, 209, 204, 255
+		HEX(0xd1b187), HEX(0xc77b58), HEX(0xae5d40), HEX(0x79444a),
+		HEX(0x4b3d44), HEX(0xba9158), HEX(0x927441), HEX(0x4d4539),
+		HEX(0x77743b), HEX(0xb3a555), HEX(0xd2c9a5), HEX(0x8caba1),
+		HEX(0x4b726e), HEX(0x574852), HEX(0x847875), HEX(0xab9b8e)
 	};
 
 	// SHADERS
@@ -327,10 +288,14 @@ int main() {
 	glUniform1i(glGetUniformLocation(shader_program, "pal_tex"), 0);
 	glUniform1i(glGetUniformLocation(shader_program, "fb_tex"), 1);
 	glUniform1i(glGetUniformLocation(shader_program, "fb_width"), WIDTH / 2);
+	glUniform1f(glGetUniformLocation(shader_program, "warp"), 0.3f);
+	glUniform1f(glGetUniformLocation(shader_program, "scan"), 0.75f);
 
 	// MAIN LOOP
 	double last_time = glfwGetTime();
 	int frame_count = 0;
+
+	int time_counter = 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		double current_time = glfwGetTime();
@@ -346,6 +311,15 @@ int main() {
 			frame_count = 0;
 			fps_time_accum = 0.0;
 		}
+
+		for (int y = 0; y < HEIGHT; y++) {
+			for (int x = 0; x < WIDTH; x++) {
+				uint8_t color = ((x + y + time_counter) / 10) % 16;
+				set_pixel(fb, x, y, color);
+			}
+		}
+
+		time_counter++;
 
 		draw();
 

@@ -121,6 +121,7 @@
     <ClCompile Include="src\lib\glfw\src\x11_monitor.c" />
     <ClCompile Include="src\lib\glfw\src\x11_window.c" />
     <ClCompile Include="src\lib\glfw\src\xkb_unicode.c" />
+    <ClCompile Include="src\lib\miniz\miniz.c" />
     <ClCompile Include="src\main.c" />
   </ItemGroup>
   <ItemGroup>
@@ -147,6 +148,8 @@
     <ClInclude Include="src\lib\glfw\src\wl_platform.h" />
     <ClInclude Include="src\lib\glfw\src\x11_platform.h" />
     <ClInclude Include="src\lib\glfw\src\xkb_unicode.h" />
+    <ClInclude Include="src\lib\miniaudio\miniaudio.h" />
+    <ClInclude Include="src\lib\miniz\miniz.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\lib\glfw\src\cocoa_init.m" />

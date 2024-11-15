@@ -126,6 +126,9 @@
     <ClCompile Include="src\lib\glfw\src\xkb_unicode.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\lib\miniz\miniz.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\lib\glfw\src\win32_joystick.h">
@@ -195,6 +198,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\lib\glfw\src\xkb_unicode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\miniaudio\miniaudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lib\miniz\miniz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
