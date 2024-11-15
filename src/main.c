@@ -1,8 +1,21 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
+
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define WIDTH 320
 #define HEIGHT 240
@@ -74,16 +87,6 @@ const char *fragment_source =
 	"    }\n"
 	"}\n";
 
-static void size_callback(GLFWwindow *window, int width, int height) {
-	float aspect_ratio = (float) WIDTH / HEIGHT;
-
-	if (width / aspect_ratio > height) {
-		glViewport((width - height * aspect_ratio) / 2, 0, height * aspect_ratio, height);
-	} else {
-		glViewport(0, (height - width / aspect_ratio) / 2, width, width / aspect_ratio);
-	}
-}
-
 static void set_pixel(uint8_t *fb, int x, int y, uint8_t color) {
 	int index = (y * WIDTH + x) / 2;
 	if (x % 2 == 0) {
@@ -102,6 +105,51 @@ static uint8_t get_pixel(uint8_t *fb, int x, int y) {
 	}
 }
 
+GLFWwindow *window;
+unsigned int shader_program;
+unsigned int vao;
+unsigned int pal_texture, fb_texture;
+uint8_t fb[WIDTH * HEIGHT / 2];
+
+bool is_fullscreen = false;
+int prev_x, prev_y, prev_w, prev_h;
+static int get_current_monitor(void);
+static void toggle_fullscreen(void);
+
+static void draw() {
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_1D, pal_texture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, fb_texture);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WIDTH / 2, HEIGHT, GL_RED, GL_UNSIGNED_BYTE, fb);
+
+	glUseProgram(shader_program);
+	glBindVertexArray(vao);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+	glfwSwapBuffers(window);
+}
+
+static void size_callback(GLFWwindow *window, int width, int height) {
+	float aspect_ratio = (float)WIDTH / HEIGHT;
+
+	if (width / aspect_ratio > height) {
+		glViewport((width - height * aspect_ratio) / 2, 0, height * aspect_ratio, height);
+	} else {
+		glViewport(0, (height - width / aspect_ratio) / 2, width, width / aspect_ratio);
+	}
+
+	draw();
+}
+
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+	if (key == GLFW_KEY_ENTER && (mods & GLFW_MOD_ALT) && action == GLFW_PRESS) {
+		toggle_fullscreen();
+	}
+}
+
 int main() {
 	// SETUP
 	if (!glfwInit()) {
@@ -112,21 +160,31 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(WIDTH * 2, HEIGHT * 2, "Test Emu - GL", NULL, NULL);
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
+	window = glfwCreateWindow(WIDTH * 2, HEIGHT * 2, "Test Emu - GL", NULL, NULL);
 	if (!window) {
 		glfwTerminate();
 		return -1;
 	}
 
+#ifdef _WIN32
+	HWND hwnd = glfwGetWin32Window(window);
+	BOOL value = TRUE;
+	DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+#endif
+
+	glfwShowWindow(window);
+
 	glfwSetFramebufferSizeCallback(window, size_callback);
+	glfwSetKeyCallback(window, key_callback);
+
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(0);
 	if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
 		glfwTerminate();
 		return -1;
 	}
-
-	uint8_t fb[WIDTH * HEIGHT / 2];
 
 	/* HORIZONTAL GRADIENT
 	for (int y = 0; y < HEIGHT; y++) {
@@ -187,7 +245,7 @@ int main() {
 		printf("Error compiling fragment shader\n%s\n", info_log);
 	}
 
-	unsigned int shader_program = glCreateProgram();
+	shader_program = glCreateProgram();
 	glAttachShader(shader_program, vertex_shader);
 	glAttachShader(shader_program, fragment_shader);
 	glLinkProgram(shader_program);
@@ -214,7 +272,7 @@ int main() {
 		1, 2, 3
 	};
 
-	unsigned int vao, vbo, ebo;
+	unsigned int vbo, ebo;
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
 	glGenBuffers(1, &ebo);
@@ -236,7 +294,6 @@ int main() {
 	glEnableVertexAttribArray(1);
 
 	// TEXTURES
-	unsigned int pal_texture, fb_texture;
 
 	// palette texture (1D)
 	glGenTextures(1, &pal_texture);
@@ -277,19 +334,8 @@ int main() {
 			fps_time_accum = 0.0;
 		}
 
-		glClear(GL_COLOR_BUFFER_BIT);
+		draw();
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_1D, pal_texture);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, fb_texture);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WIDTH / 2, HEIGHT, GL_RED, GL_UNSIGNED_BYTE, fb);
-
-		glUseProgram(shader_program);
-		glBindVertexArray(vao);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
@@ -301,4 +347,104 @@ int main() {
 
 	glfwTerminate();
 	return 0;
+}
+
+// functions adapted from raylib
+static int get_current_monitor(void) {
+	int index = 0;
+	int monitor_count = 0;
+	GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+	GLFWmonitor *monitor = NULL;
+
+	if (monitor_count >= 1) {
+		int closestDist = 0x7FFFFFFF;
+
+		int wcx = 0;
+		int wcy = 0;
+
+		glfwGetWindowPos(window, &wcx, &wcy);
+
+		int w, h;
+		glfwGetWindowSize(window, &w, &h);
+
+		wcx += w / 2;
+		wcy += h / 2;
+
+		for (int i = 0; i < monitor_count; i++) {
+			int mx = 0;
+			int my = 0;
+
+			monitor = monitors[i];
+			glfwGetMonitorPos(monitor, &mx, &my);
+			const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+
+			if (mode) {
+				const int right = mx + mode->width - 1;
+				const int bottom = my + mode->height - 1;
+
+				if ((wcx >= mx) && (wcx <= right) && (wcy >= my) && (wcy <= bottom)) {
+					index = i;
+					break;
+				}
+
+				int xclosest = wcx;
+				if (wcx < mx) xclosest = mx;
+				else if (wcx > right) xclosest = right;
+
+				int yclosest = wcy;
+				if (wcy < my) yclosest = my;
+				else if (wcy > bottom) yclosest = bottom;
+
+				int dx = wcx - xclosest;
+				int dy = wcy - yclosest;
+				int dist = (dx * dx) + (dy * dy);
+				if (dist < closestDist) {
+					index = i;
+					closestDist = dist;
+				}
+			}
+		}
+	}
+
+	return index;
+}
+
+static void toggle_fullscreen(void) {
+	const int monitor = get_current_monitor();
+	int monitor_count;
+	GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+
+	if ((monitor >= 0) && (monitor < monitor_count)) {
+		const GLFWvidmode *mode = glfwGetVideoMode(monitors[monitor]);
+
+		if (mode) {
+			if (!is_fullscreen) {
+				glfwGetWindowPos(window, &prev_x, &prev_y);
+				glfwGetWindowSize(window, &prev_w, &prev_h);
+
+				glfwSetWindowAttrib(window, GLFW_DECORATED, GLFW_FALSE);
+				glfwSetWindowAttrib(window, GLFW_FLOATING, GLFW_TRUE);
+
+				int monitor_x, monitor_y;
+				glfwGetMonitorPos(monitors[monitor], &monitor_x, &monitor_y);
+
+				glfwSetWindowPos(window, monitor_x, monitor_y);
+				glfwSetWindowSize(window, mode->width, mode->height);
+
+				glfwFocusWindow(window);
+
+				is_fullscreen = true;
+			} else {
+				glfwSetWindowAttrib(window, GLFW_DECORATED, GLFW_TRUE);
+				glfwSetWindowAttrib(window, GLFW_FLOATING, GLFW_FALSE);
+
+				glfwSetWindowPos(window, prev_x, prev_y);
+				glfwSetWindowSize(window, prev_w, prev_h);
+
+				glfwFocusWindow(window);
+
+				is_fullscreen = false;
+			}
+		}
+	}
 }
