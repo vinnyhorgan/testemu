@@ -215,4 +215,9 @@
     <None Include="src\lib\glfw\src\cocoa_window.m" />
     <None Include="src\lib\glfw\src\nsgl_context.m" />
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="emu.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
 </Project>

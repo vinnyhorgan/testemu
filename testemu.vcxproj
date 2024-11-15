@@ -159,6 +159,9 @@
     <None Include="src\lib\glfw\src\mappings.h.in" />
     <None Include="src\lib\glfw\src\nsgl_context.m" />
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="emu.rc" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
