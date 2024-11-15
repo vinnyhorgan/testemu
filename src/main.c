@@ -18,6 +18,7 @@ const char *vertex_source =
 	"    TexCoord = aTexCoord;\n"
 	"}\n";
 
+/* BASE SHADER
 const char *fragment_source =
 	"#version 330 core\n"
 	"out vec4 FragColor;\n"
@@ -36,6 +37,41 @@ const char *fragment_source =
 	"        color_index = (int(index_byte) >> 4) & 0x0F;\n"
 	"    }\n"
 	"    FragColor = texelFetch(pal_tex, color_index, 0);\n"
+	"}\n";
+*/
+
+const char *fragment_source =
+	"#version 330 core\n"
+	"out vec4 FragColor;\n"
+	"in vec2 TexCoord;\n"
+	"uniform sampler1D pal_tex;\n"
+	"uniform sampler2D fb_tex;\n"
+	"uniform int fb_width;\n"
+	"void main() {\n"
+	"    vec2 texel = TexCoord * vec2(fb_width, textureSize(fb_tex, 0).y);\n"
+	"    ivec2 pixel = ivec2(texel);\n"
+	"    float index_byte = int(texelFetch(fb_tex, pixel, 0).r * 255.0);\n"
+	"    int color_index;\n"
+	"    if (int(texel.x) % 2 == 0) {\n"
+	"        color_index = int(index_byte) & 0x0F;\n"
+	"    } else {\n"
+	"        color_index = (int(index_byte) >> 4) & 0x0F;\n"
+	"    }\n"
+	"    vec4 color = texelFetch(pal_tex, color_index, 0);\n"
+	"    vec2 uv = TexCoord;\n"
+	"    vec2 dc = abs(0.5 - uv) * abs(0.5 - uv);"
+	"    uv.x -= 0.5;\n"
+	"    uv.x *= 1.0 + (dc.y * (0.3 * 0.75));\n"
+	"    uv.x += 0.5;\n"
+	"    uv.y -= 0.5;\n"
+	"    uv.y *= 1.0 + (dc.x * (0.4 * 0.75));\n"
+	"    uv.y += 0.5;\n"
+	"    if (uv.y > 1.0 || uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0) {\n"
+	"        FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n"
+	"    } else {\n"
+	"        float apply = abs(sin(gl_FragCoord.y) * 0.5 * 0.75);\n"
+	"        FragColor = mix(color, vec4(0.0, 0.0, 0.0, 1.0), apply);\n"
+	"    }\n"
 	"}\n";
 
 static void size_callback(GLFWwindow *window, int width, int height) {
