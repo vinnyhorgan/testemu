@@ -174,6 +174,7 @@ int main() {
 	DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 #endif
 
+	glfwSetWindowSizeLimits(window, WIDTH, HEIGHT, GLFW_DONT_CARE, GLFW_DONT_CARE);
 	glfwShowWindow(window);
 
 	glfwSetFramebufferSizeCallback(window, size_callback);
