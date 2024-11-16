@@ -85,6 +85,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\lib\fake6502\fake6502.c" />
     <ClCompile Include="src\lib\glad\src\glad.c" />
     <ClCompile Include="src\lib\glfw\src\cocoa_time.c" />
     <ClCompile Include="src\lib\glfw\src\context.c" />

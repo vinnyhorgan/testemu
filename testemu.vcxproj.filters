@@ -129,6 +129,9 @@
     <ClCompile Include="src\lib\miniz\miniz.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\lib\fake6502\fake6502.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\lib\glfw\src\win32_joystick.h">

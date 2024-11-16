@@ -79,6 +79,14 @@ const char *fragment_source =
 	"    }\n"
 	"}\n";
 
+uint8_t read6502(uint16_t address) {
+	return 0;
+}
+
+uint8_t write6502(uint16_t address, uint8_t value) {
+	return 0;
+}
+
 static void set_pixel(uint8_t *fb, int x, int y, uint8_t color) {
 	int index = (y * WIDTH + x) / 2;
 	if (x % 2 == 0) {
