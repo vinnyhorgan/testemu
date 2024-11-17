@@ -30,7 +30,8 @@
 #include <stdbool.h>
 
 #define WIDTH 320
-#define HEIGHT 240
+#define HEIGHT 200
+#define SCALE 3
 #define PALETTE_SIZE 16
 
 const char *vertex_source =
@@ -54,10 +55,10 @@ const char *fragment_source =
 	"uniform float scan;\n"
 	"void main() {\n"
 	"    vec2 texel = TexCoord * vec2(fb_width, textureSize(fb_tex, 0).y);\n"
-	"    ivec2 pixel = ivec2(texel);\n"
+	"    ivec2 pixel = ivec2(floor(texel));\n"
 	"    float index_byte = int(texelFetch(fb_tex, pixel, 0).r * 255.0);\n"
 	"    int color_index;\n"
-	"    if (int(texel.x) % 2 == 0) {\n"
+	"    if (int(texel.x * 2.0) % 2 == 0) {\n"
 	"        color_index = int(index_byte) & 0x0F;\n"
 	"    } else {\n"
 	"        color_index = (int(index_byte) >> 4) & 0x0F;\n"
@@ -78,24 +79,6 @@ const char *fragment_source =
 	"        FragColor = mix(color, vec4(0.0, 0.0, 0.0, 1.0), apply);\n"
 	"    }\n"
 	"}\n";
-
-static void set_pixel(uint8_t *fb, int x, int y, uint8_t color) {
-	int index = (y * WIDTH + x) / 2;
-	if (x % 2 == 0) {
-		fb[index] = (fb[index] & 0x0F) | (color << 4);
-	} else {
-		fb[index] = (fb[index] & 0xF0) | (color & 0x0F);
-	}
-}
-
-static uint8_t get_pixel(uint8_t *fb, int x, int y) {
-	int index = (y * WIDTH + x) / 2;
-	if (x % 2 == 0) {
-		return (fb[index] >> 4) & 0x0F;
-	} else {
-		return fb[index] & 0x0F;
-	}
-}
 
 GLFWwindow *window;
 unsigned int shader_program;
@@ -125,20 +108,42 @@ static void draw() {
 }
 
 static void size_callback(GLFWwindow *window, int width, int height) {
-	float aspect_ratio = (float)WIDTH / HEIGHT;
+	int scale_x = width / WIDTH;
+	int scale_y = height / HEIGHT;
+	int scale = scale_x < scale_y ? scale_x : scale_y;
+	if (scale == 0) scale = 1;
 
-	if (width / aspect_ratio > height) {
-		glViewport((width - height * aspect_ratio) / 2, 0, height * aspect_ratio, height);
-	} else {
-		glViewport(0, (height - width / aspect_ratio) / 2, width, width / aspect_ratio);
-	}
+	int view_width = WIDTH * scale;
+	int view_height = HEIGHT * scale;
+	int view_x = (width - view_width) / 2;
+	int view_y = (height - view_height) / 2;
+
+	glViewport(view_x, view_y, view_width, view_height);
 
 	draw();
 }
 
+extern uint16_t pc;
+extern uint8_t sp, a, x, y, status;
+void reset6502(void);
+void exec6502(uint32_t tick_count);
+void step6502(void);
+void irq6502(void);
+void nmi6502(void);
+
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ENTER && (mods & GLFW_MOD_ALT) && action == GLFW_PRESS) {
 		toggle_fullscreen();
+	}
+
+	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+		step6502();
+		printf("PC: %04X\n", pc);
+		printf("SP: %02X\n", sp);
+		printf("A: %02X\n", a);
+		printf("X: %02X\n", x);
+		printf("Y: %02X\n", y);
+		printf("Status: %02X\n", status);
 	}
 }
 
@@ -156,6 +161,7 @@ void write6502(uint16_t address, uint8_t value) {
 static void reset(void) {
 	memset(ram, 0, sizeof(ram));
 	reset6502();
+	pc = 0x7F00;
 }
 
 int main() {
@@ -170,7 +176,7 @@ int main() {
 
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-	window = glfwCreateWindow(WIDTH * 2, HEIGHT * 2, "Emu - v0.1.0", NULL, NULL);
+	window = glfwCreateWindow(WIDTH * SCALE, HEIGHT * SCALE, "Emu - v0.1.0", NULL, NULL);
 	if (!window) {
 		glfwTerminate();
 		return -1;
@@ -195,21 +201,14 @@ int main() {
 		return -1;
 	}
 
-	for (int y = 0; y < HEIGHT; y++) {
-		for (int x = 0; x < WIDTH; x++) {
-			uint8_t color = ((x + y) / 10) % 16;
-			set_pixel(fb, x, y, color);
-		}
-	}
-
 	#define HEX(hex) ((hex >> 16) & 0xFF), ((hex >> 8) & 0xFF), (hex & 0xFF), 255
 
 	// Lost Century palette lospec
 	uint8_t pal[PALETTE_SIZE * 4] = {
-		HEX(0xd1b187), HEX(0xc77b58), HEX(0xae5d40), HEX(0x79444a),
-		HEX(0x4b3d44), HEX(0xba9158), HEX(0x927441), HEX(0x4d4539),
-		HEX(0x77743b), HEX(0xb3a555), HEX(0xd2c9a5), HEX(0x8caba1),
-		HEX(0x4b726e), HEX(0x574852), HEX(0x847875), HEX(0xab9b8e)
+		HEX(0x1a1c2c), HEX(0x5d275d), HEX(0xb13e53), HEX(0xef7d57),
+		HEX(0xffcd75), HEX(0xa7f070), HEX(0x38b764), HEX(0x257179),
+		HEX(0x29366f), HEX(0x3b5dc9), HEX(0x41a6f6), HEX(0x73eff7),
+		HEX(0xf4f4f4), HEX(0x94b0c2), HEX(0x566c86), HEX(0x333c57)
 	};
 
 	// SHADERS
@@ -310,6 +309,16 @@ int main() {
 	// emulation stuff
 	reset();
 
+	// load this program into memory at pc = 0x7F00
+	uint8_t program[] = {
+		0xA9, 0x01, 0x8D, 0x00, 0x02, 0xA9, 0x06, 0x8D,
+		0x01, 0x02, 0xA9, 0x08, 0x8D, 0x02, 0x02,
+	};
+
+	for (int i = 0; i < sizeof(program); i++) {
+		ram[0x7F00 + i] = program[i];
+	}
+
 	// MAIN LOOP
 	double last_time = glfwGetTime();
 	int frame_count = 0;
@@ -331,24 +340,14 @@ int main() {
 			fps_time_accum = 0.0;
 		}
 
-		/*
-		for (int y = 0; y < HEIGHT; y++) {
-			for (int x = 0; x < WIDTH; x++) {
-				uint8_t color = ((x + y + time_counter) / 10) % 16;
-				set_pixel(fb, x, y, color);
-			}
-		}
-		time_counter++;
-		*/
-
-		uint8_t vram_block = 0xF000;
+		ram[0x300] = 0x23;
 
 		for (int i = 0; i < WIDTH * HEIGHT / 2; i++) {
-			fb[i] = read6502(vram_block + i);
+			fb[i] = read6502(0x200 + i);
 		}
 
 		// run 6502 at 1MHz
-		exec6502(10000000 / 60);
+		// exec6502(10000000 / 60);
 
 		draw();
 
