@@ -79,14 +79,6 @@ const char *fragment_source =
 	"    }\n"
 	"}\n";
 
-uint8_t read6502(uint16_t address) {
-	return 0;
-}
-
-uint8_t write6502(uint16_t address, uint8_t value) {
-	return 0;
-}
-
 static void set_pixel(uint8_t *fb, int x, int y, uint8_t color) {
 	int index = (y * WIDTH + x) / 2;
 	if (x % 2 == 0) {
@@ -148,6 +140,22 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 	if (key == GLFW_KEY_ENTER && (mods & GLFW_MOD_ALT) && action == GLFW_PRESS) {
 		toggle_fullscreen();
 	}
+}
+
+// EMULATION STUFF
+uint8_t ram[1 << 16];
+
+uint8_t read6502(uint16_t address) {
+	return ram[address];
+}
+
+void write6502(uint16_t address, uint8_t value) {
+	ram[address] = value;
+}
+
+static void reset(void) {
+	memset(ram, 0, sizeof(ram));
+	reset6502();
 }
 
 int main() {
@@ -299,6 +307,9 @@ int main() {
 	glUniform1f(glGetUniformLocation(shader_program, "warp"), 0.3f);
 	glUniform1f(glGetUniformLocation(shader_program, "scan"), 0.75f);
 
+	// emulation stuff
+	reset();
+
 	// MAIN LOOP
 	double last_time = glfwGetTime();
 	int frame_count = 0;
@@ -320,14 +331,24 @@ int main() {
 			fps_time_accum = 0.0;
 		}
 
+		/*
 		for (int y = 0; y < HEIGHT; y++) {
 			for (int x = 0; x < WIDTH; x++) {
 				uint8_t color = ((x + y + time_counter) / 10) % 16;
 				set_pixel(fb, x, y, color);
 			}
 		}
-
 		time_counter++;
+		*/
+
+		uint8_t vram_block = 0xF000;
+
+		for (int i = 0; i < WIDTH * HEIGHT / 2; i++) {
+			fb[i] = read6502(vram_block + i);
+		}
+
+		// run 6502 at 1MHz
+		exec6502(10000000 / 60);
 
 		draw();
 
