@@ -29,9 +29,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define WIDTH 320
-#define HEIGHT 200
-#define SCALE 3
+#define WIDTH 240
+#define HEIGHT 136
+#define SCALE 4
 #define PALETTE_SIZE 16
 
 const char *vertex_source =
@@ -91,6 +91,32 @@ int prev_x, prev_y, prev_w, prev_h;
 static int get_current_monitor(void);
 static void toggle_fullscreen(void);
 
+// EMULATION STUFF
+extern uint16_t pc;
+extern uint8_t sp, a, x, y, status;
+void reset6502(void);
+void exec6502(uint32_t tick_count);
+void step6502(void);
+void irq6502(void);
+void nmi6502(void);
+
+uint8_t ram[1 << 16];
+
+uint8_t read6502(uint16_t address) {
+	return ram[address];
+}
+
+void write6502(uint16_t address, uint8_t value) {
+	ram[address] = value;
+}
+
+static void reset(void) {
+	memset(ram, 0, sizeof(ram));
+	reset6502();
+	pc = 0x41C0;
+}
+
+// CALLBACKS
 static void draw() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -123,45 +149,38 @@ static void size_callback(GLFWwindow *window, int width, int height) {
 	draw();
 }
 
-extern uint16_t pc;
-extern uint8_t sp, a, x, y, status;
-void reset6502(void);
-void exec6502(uint32_t tick_count);
-void step6502(void);
-void irq6502(void);
-void nmi6502(void);
-
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_ENTER && (mods & GLFW_MOD_ALT) && action == GLFW_PRESS) {
 		toggle_fullscreen();
 	}
 
 	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-		step6502();
+		printf("PRE-STATE\n");
+
 		printf("PC: %04X\n", pc);
 		printf("SP: %02X\n", sp);
 		printf("A: %02X\n", a);
 		printf("X: %02X\n", x);
 		printf("Y: %02X\n", y);
 		printf("Status: %02X\n", status);
+		printf("\n");
+
+		step6502();
+
+		printf("PC: %04X\n", pc);
+		printf("SP: %02X\n", sp);
+		printf("A: %02X\n", a);
+		printf("X: %02X\n", x);
+		printf("Y: %02X\n", y);
+		printf("Status: %02X\n", status);
+		printf("\n");
+
+		printf("STACK\n");
+		for (int i = 0x100; i < 0x1FF; i++) {
+			printf("%02X ", ram[i]);
+		}
+		printf("\n");
 	}
-}
-
-// EMULATION STUFF
-uint8_t ram[1 << 16];
-
-uint8_t read6502(uint16_t address) {
-	return ram[address];
-}
-
-void write6502(uint16_t address, uint8_t value) {
-	ram[address] = value;
-}
-
-static void reset(void) {
-	memset(ram, 0, sizeof(ram));
-	reset6502();
-	pc = 0x7F00;
 }
 
 int main() {
@@ -303,21 +322,31 @@ int main() {
 	glUniform1i(glGetUniformLocation(shader_program, "pal_tex"), 0);
 	glUniform1i(glGetUniformLocation(shader_program, "fb_tex"), 1);
 	glUniform1i(glGetUniformLocation(shader_program, "fb_width"), WIDTH / 2);
-	glUniform1f(glGetUniformLocation(shader_program, "warp"), 0.3f);
+	glUniform1f(glGetUniformLocation(shader_program, "warp"), 0.0f);
 	glUniform1f(glGetUniformLocation(shader_program, "scan"), 0.75f);
 
 	// emulation stuff
 	reset();
 
-	// load this program into memory at pc = 0x7F00
-	uint8_t program[] = {
-		0xA9, 0x01, 0x8D, 0x00, 0x02, 0xA9, 0x06, 0x8D,
-		0x01, 0x02, 0xA9, 0x08, 0x8D, 0x02, 0x02,
-	};
-
-	for (int i = 0; i < sizeof(program); i++) {
-		ram[0x7F00 + i] = program[i];
+	FILE *rom = fopen("rom.bin", "rb");
+	if (!rom) {
+		printf("Error opening rom.bin\n");
+		return -1;
 	}
+
+	fseek(rom, 0, SEEK_END);
+	long rom_size = ftell(rom);
+	fseek(rom, 0, SEEK_SET);
+
+	uint8_t *program = malloc(rom_size);
+	fread(program, 1, rom_size, rom);
+	fclose(rom);
+
+	for (int i = 0; i < rom_size; i++) {
+		ram[0x41C0 + i] = program[i];
+	}
+
+	free(program);
 
 	// MAIN LOOP
 	double last_time = glfwGetTime();
@@ -335,19 +364,24 @@ int main() {
 		static double fps_time_accum = 0.0;
 		fps_time_accum += delta_time;
 		if (fps_time_accum >= 1.0) {
-			printf("FPS: %d\n", frame_count);
+			// printf("FPS: %d\n", frame_count);
 			frame_count = 0;
 			fps_time_accum = 0.0;
 		}
-
-		ram[0x300] = 0x23;
 
 		for (int i = 0; i < WIDTH * HEIGHT / 2; i++) {
 			fb[i] = read6502(0x200 + i);
 		}
 
-		// run 6502 at 1MHz
-		// exec6502(10000000 / 60);
+		// run 6502 at 10 MHz
+		int current_monitor = get_current_monitor();
+		int monitor_count;
+		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+		GLFWmonitor *monitor = monitors[current_monitor];
+		const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+		int refresh_rate = mode->refreshRate;
+
+		exec6502(10000000 / refresh_rate);
 
 		draw();
 

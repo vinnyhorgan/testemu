@@ -1,0 +1,21 @@
+	                            .org $41C0
+041C0                           
+041C0                           FB_START    = $0200          ; Framebuffer base address
+041C0                           FB_SIZE     = 16320          ; Total bytes in framebuffer
+041C0                           PALETTE_MAX = 16             ; Number of colors in the palette
+041C0                           
+041C0                           cock = 4*5
+041C0                           
+041C0 A5 14                     lda cock
+041C2                           
+041C2                           ass:
+041C2 4C C2 41                      jmp ass
+041C5                           
+041C5                           ; inputs:
+041C5                           ; X = coorinate (0-239)
+041C5                           ; Y = coorinate (0-135)
+041C5                           ; A = color (0-15)
+041C5                           
+041C5                           set_pixel:
+041C5 98                            tya
+041C6 A2 78                         ldx #120
