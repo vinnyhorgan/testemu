@@ -1,21 +1,124 @@
 	                            .org $41C0
 041C0                           
-041C0                           FB_START    = $0200          ; Framebuffer base address
-041C0                           FB_SIZE     = 16320          ; Total bytes in framebuffer
-041C0                           PALETTE_MAX = 16             ; Number of colors in the palette
+041C0                           FB_START    = $0200
 041C0                           
-041C0                           cock = 4*5
+041C0                           ; addition params
+041C0                           num1lo = $62
+041C0                           num1hi = $63
+041C0                           num2lo = $64
+041C0                           num2hi = $65
+041C0                           reslo = $66
+041C0                           reshi = $67
 041C0                           
-041C0 A5 14                     lda cock
-041C2                           
-041C2                           ass:
-041C2 4C C2 41                      jmp ass
+041C0                           ; multiplication params
+041C0                           aux = $68
+041C0                           acc = $69
+041C0                           
+041C0 A9 06                     lda #$06
+041C2 8D 00 02                  sta FB_START
 041C5                           
-041C5                           ; inputs:
-041C5                           ; X = coorinate (0-239)
-041C5                           ; Y = coorinate (0-135)
-041C5                           ; A = color (0-15)
-041C5                           
-041C5                           set_pixel:
-041C5 98                            tya
-041C6 A2 78                         ldx #120
+041C5 AD 00 02                  lda FB_START
+041C8 09 30                     ora #$30
+041CA 8D 00 02                  sta FB_START
+041CD                           
+041CD A9 36                     lda #$36
+041CF 8D 79 02                  sta FB_START + 120 * 1 + 1
+041D2                           
+041D2                           loop:
+041D2 4C D2 41                      jmp loop
+041D5                           
+041D5                           ; x coord in x register
+041D5                           ; y coord in y register
+041D5                           ; color in a register
+041D5                           set_pixel:
+041D5                               ; save x, y, and color in zero page
+041D5 86 01                         stx $01
+041D7 84 02                         sty $02
+041D9 85 03                         sta $03
+041DB                           
+041DB                               ; calulate x / 2
+041DB A5 01                         lda $01
+041DD 4A                            lsr
+041DE 85 04                         sta $04 ; save x / 2
+041E0                           
+041E0                               ; perform 0x200 + x / 2 (already in $01)
+041E0 A5 04                         lda $04
+041E2 85 62                         sta num1lo
+041E4 A9 00                         lda #0
+041E6 85 63                         sta num1hi
+041E8 85 64                         sta num2lo
+041EA A9 02                         lda #2
+041EC 85 65                         sta num2hi
+041EE 20 28 42                      jsr add
+041F1                           
+041F1                               ; store result in $04 and $05
+041F1 A5 66                         lda reslo
+041F3 85 04                         sta $04
+041F5 A5 67                         lda reshi
+041F7 85 05                         sta $05
+041F9                           
+041F9                               ; y * 120
+041F9 A5 02                         lda $02
+041FB 85 69                         sta acc
+041FD A9 78                         lda #120
+041FF 85 68                         sta aux
+04201 20 36 42                      jsr mult
+04204                           
+04204                               ; finally add y * 120 to our intermediate result in $04 and $05
+04204 85 63                         sta num1hi
+04206 A5 69                         lda acc
+04208 85 62                         sta num1lo
+0420A A5 04                         lda $04
+0420C 85 64                         sta num2lo
+0420E A5 05                         lda $05
+04210 85 65                         sta num2hi
+04212 20 28 42                      jsr add
+04215                           
+04215                               ; great, now reslo and reshi contain the address of the pixel we want to set
+04215                           
+04215                               ; indirect addressing => sta (reslo), y
+04215 B1 66                         lda (reslo), y
+04217 4A                            lsr a
+04218 90 05                         bcc even
+0421A 05 03                         ora $03
+0421C 4C 25 42                      jmp write
+0421F                           
+0421F                           even:
+0421F 29 F0                         and #$F0
+04221 06 03                         asl $03
+04223 05 03                         ora $03
+04225                           
+04225                           write:
+04225 91 66                         sta (reslo), y
+04227                           
+04227 60                            rts
+04228                           
+04228                           add:
+04228 18                            clc
+04229 A5 62                         lda num1lo
+0422B 65 64                         adc num2lo
+0422D 85 66                         sta reslo
+0422F A5 63                         lda num1hi
+04231 65 65                         adc num2hi
+04233 85 67                         sta reshi
+04235 60                            rts
+04236                           
+04236                           ; Multiply acc * aux
+04236                           ;
+04236                           ; On Exit:
+04236                           ;   acc (low byte)
+04236                           ;   A   (high byte)
+04236                           mult:
+04236 A9 00                         lda #0
+04238 A0 09                         ldy #9      ; loop counter
+0423A 18                            clc
+0423B                           -
+0423B 6A                            ror
+0423C 66 69                         ror acc
+0423E 90 03                         bcc +
+04240 18                            clc         ; decrement aux above to remove CLC
+04241 65 68                         adc aux
+04243                           +
+04243 88                            dey
+04244 D0 F5                         bne -
+04246 60                            rts
